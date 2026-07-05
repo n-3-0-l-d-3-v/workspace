@@ -30,6 +30,72 @@ type RetrievedChunkRow = {
   chunk_index: number
 }
 
+type GeminiFunctionCall = {
+  name?: string
+  args?: Record<string, unknown>
+}
+
+const chatToolDefinitions = [
+  {
+    name: "save_task",
+    description: "Save a task or to-do item into the current workspace.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Short task title" },
+        description: { type: "string", description: "Optional longer description" },
+        due_date: { type: "string", description: "Optional ISO date, e.g. 2026-07-06" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "send_summary_to_discord",
+    description: "Send a short summary message to the workspace's Discord channel.",
+    parameters: {
+      type: "object",
+      properties: {
+        summary: { type: "string", description: "The message text to send" },
+      },
+      required: ["summary"],
+    },
+  },
+]
+
+function getFunctionCallFromResponse(response: Awaited<ReturnType<ReturnType<GoogleGenerativeAI["getGenerativeModel"]>["generateContent"]>>["response"]): GeminiFunctionCall | null {
+  const fromHelper = response.functionCalls?.() ?? []
+  if (fromHelper.length > 0) {
+    return fromHelper[0] as GeminiFunctionCall
+  }
+
+  const parts = response.candidates?.[0]?.content?.parts ?? []
+  for (const part of parts) {
+    const functionCall = (part as { functionCall?: GeminiFunctionCall }).functionCall
+    if (functionCall?.name) {
+      return functionCall
+    }
+  }
+
+  return null
+}
+
+async function generateWithTools(
+  gemini: GoogleGenerativeAI,
+  modelName: string,
+  prompt: string
+) {
+  const model = gemini.getGenerativeModel({ model: modelName })
+  return model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    tools: [{ functionDeclarations: chatToolDefinitions }],
+    toolConfig: {
+      functionCallingConfig: {
+        mode: "AUTO",
+      },
+    },
+  })
+}
+
 function chunkText(text: string) {
   const words = text.trim().split(/\s+/).filter(Boolean)
   const chunkSize = 500
@@ -380,16 +446,134 @@ export async function sendChatMessage(formData: FormData): Promise<ActionResult>
     question,
   ].join("\n")
 
-  let answerText = ""
+  let answerResponse: Awaited<ReturnType<ReturnType<GoogleGenerativeAI["getGenerativeModel"]>["generateContent"]>>
+  let modelName = "gemini-2.5-flash"
 
   try {
-    const primaryModel = gemini.getGenerativeModel({ model: "gemini-2.5-flash" })
-    const answerResponse = await primaryModel.generateContent(prompt)
-    answerText = answerResponse.response.text()
+    answerResponse = await generateWithTools(gemini, modelName, prompt)
   } catch {
-    const fallbackModel = gemini.getGenerativeModel({ model: "gemini-2.0-flash" })
-    const answerResponse = await fallbackModel.generateContent(prompt)
-    answerText = answerResponse.response.text()
+    modelName = "gemini-2.0-flash"
+    answerResponse = await generateWithTools(gemini, modelName, prompt)
+  }
+
+  const initialText = answerResponse.response.text()
+  const functionCall = getFunctionCallFromResponse(answerResponse.response)
+
+  let answerText = initialText
+
+  if (functionCall?.name) {
+    const toolName = functionCall.name
+    const rawArgs = functionCall.args ?? {}
+    const startedAt = Date.now()
+    let status: "success" | "failed" = "failed"
+    let result: unknown = null
+
+    try {
+      if (toolName === "save_task") {
+        const title = rawArgs.title
+        const description = rawArgs.description
+        const dueDate = rawArgs.due_date
+
+        if (typeof title !== "string" || title.trim().length === 0) {
+          throw new Error("Invalid save_task arguments: title must be a non-empty string.")
+        }
+
+        const { data: taskRow, error: taskError } = await supabase
+          .from("tasks")
+          .insert({
+            workspace_id: workspaceId,
+            title: title.trim(),
+            description: typeof description === "string" ? description : null,
+            due_date: typeof dueDate === "string" ? dueDate : null,
+          })
+          .select("id")
+          .single()
+
+        if (taskError) {
+          throw new Error(taskError.message)
+        }
+
+        status = "success"
+        result = { message: "Task saved.", task_id: taskRow?.id ?? null }
+      } else if (toolName === "send_summary_to_discord") {
+        const summary = rawArgs.summary
+
+        if (typeof summary !== "string" || summary.trim().length === 0) {
+          throw new Error("Invalid send_summary_to_discord arguments: summary must be a non-empty string.")
+        }
+
+        const webhookUrl = process.env.DISCORD_WEBHOOK_URL
+        if (!webhookUrl) {
+          throw new Error("DISCORD_WEBHOOK_URL is not configured.")
+        }
+
+        const webhookResponse = await fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content: summary }),
+        })
+
+        if (!webhookResponse.ok) {
+          throw new Error(`Discord webhook failed with status ${webhookResponse.status}.`)
+        }
+
+        status = "success"
+        result = { message: "Summary sent to Discord." }
+      } else {
+        throw new Error(`Unknown tool: ${toolName}`)
+      }
+    } catch (error) {
+      status = "failed"
+      result = {
+        error: error instanceof Error ? error.message : "Tool execution failed.",
+      }
+    }
+
+    const latencyMs = Date.now() - startedAt
+
+    await supabase.from("tool_calls").insert({
+      workspace_id: workspaceId,
+      tool_name: toolName,
+      arguments: rawArgs,
+      status,
+      result,
+      latency_ms: latencyMs,
+    })
+
+    const followupModel = gemini.getGenerativeModel({ model: modelName })
+    const finalResponse = await followupModel.generateContent({
+      contents: [
+        { role: "user", parts: [{ text: prompt }] },
+        {
+          role: "model",
+          parts: [{ functionCall: { name: toolName, args: rawArgs } }],
+        },
+        {
+          role: "user",
+          parts: [
+            {
+              functionResponse: {
+                name: toolName,
+                response: {
+                  status,
+                  result,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      tools: [{ functionDeclarations: chatToolDefinitions }],
+      toolConfig: {
+        functionCallingConfig: {
+          mode: "AUTO",
+        },
+      },
+    })
+
+    answerText = finalResponse.response.text()
   }
 
   const citations = retrievedChunks.map((chunk) => ({

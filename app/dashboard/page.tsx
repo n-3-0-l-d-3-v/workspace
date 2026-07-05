@@ -88,7 +88,21 @@ export default async function DashboardPage() {
         .order("created_at", { ascending: true })
     : { data: [], error: null };
 
-  if (membershipError || workspaceError || documentsError || chatError) {
+  const { data: toolCalls, error: toolCallsError } = activeWorkspaceId
+    ? await supabase
+        .from("tool_calls")
+        .select("id, tool_name, status, created_at")
+        .eq("workspace_id", activeWorkspaceId)
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
+
+  if (
+    membershipError ||
+    workspaceError ||
+    documentsError ||
+    chatError ||
+    toolCallsError
+  ) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 py-12 text-zinc-100">
         <section className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/5 p-8">
@@ -152,6 +166,26 @@ export default async function DashboardPage() {
         </div>
 
         <ChatPanel messages={(chatMessages ?? []) as ChatMessage[]} />
+
+        <div className="space-y-2 rounded-lg border border-zinc-800 p-4">
+          <h2 className="text-lg font-medium">Tool calls</h2>
+          {toolCalls && toolCalls.length > 0 ? (
+            <div className="space-y-2">
+              {toolCalls.map((toolCall) => (
+                <div
+                  key={toolCall.id}
+                  className="rounded-md border border-zinc-800 p-3"
+                >
+                  <p className="font-medium">{toolCall.tool_name}</p>
+                  <p className="text-sm text-zinc-400">{toolCall.status}</p>
+                  <p className="text-sm text-zinc-500">{toolCall.created_at}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400">No tool calls yet.</p>
+          )}
+        </div>
 
         <div className="pt-2">
           <h2 className="mb-3 text-lg font-medium">Your workspaces</h2>
