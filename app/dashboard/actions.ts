@@ -738,3 +738,118 @@ export async function getRetrievalDetails(chunkIds: string[]): Promise<
     })),
   }
 }
+
+export async function shareDocument(
+  documentId: string,
+  targetWorkspaceId: string
+): Promise<ActionResult> {
+  if (!documentId || !targetWorkspaceId) {
+    return { error: "Document id and target workspace id are required." }
+  }
+
+  const workspaceResolution = await resolveActiveWorkspaceId()
+
+  if ("error" in workspaceResolution) {
+    return { error: workspaceResolution.error }
+  }
+
+  const { workspaceId, supabase, cookieStore } = workspaceResolution
+
+  const { data: documentRow, error: documentError } = await supabase
+    .from("documents")
+    .select("id, workspace_id")
+    .eq("id", documentId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+
+  if (documentError) {
+    return { error: documentError.message }
+  }
+
+  if (!documentRow) {
+    return { error: "Document does not belong to the active workspace." }
+  }
+
+  if (targetWorkspaceId === workspaceId) {
+    return { error: "Cannot share a document with its source workspace." }
+  }
+
+  const { data: membershipRow, error: membershipError } = await supabase
+    .from("workspace_members")
+    .select("workspace_id")
+    .eq("workspace_id", targetWorkspaceId)
+    .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .maybeSingle()
+
+  if (membershipError) {
+    return { error: membershipError.message }
+  }
+
+  if (!membershipRow) {
+    return { error: "Target workspace is not accessible to the current user." }
+  }
+
+  const { error: shareError } = await supabase.from("document_shares").insert({
+    document_id: documentId,
+    shared_with_workspace_id: targetWorkspaceId,
+    shared_by: (await supabase.auth.getUser()).data.user?.id ?? null,
+  })
+
+  if (shareError) {
+    return { error: shareError.message }
+  }
+
+  cookieStore.set("active_workspace_id", workspaceId, {
+    path: "/",
+    sameSite: "lax",
+    httpOnly: true,
+  })
+
+  revalidatePath("/dashboard")
+  return {}
+}
+
+export async function unshareDocument(
+  documentId: string,
+  targetWorkspaceId: string
+): Promise<ActionResult> {
+  if (!documentId || !targetWorkspaceId) {
+    return { error: "Document id and target workspace id are required." }
+  }
+
+  const workspaceResolution = await resolveActiveWorkspaceId()
+
+  if ("error" in workspaceResolution) {
+    return { error: workspaceResolution.error }
+  }
+
+  const { workspaceId, supabase } = workspaceResolution
+
+  const { data: documentRow, error: documentError } = await supabase
+    .from("documents")
+    .select("id, workspace_id")
+    .eq("id", documentId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+
+  if (documentError) {
+    return { error: documentError.message }
+  }
+
+  if (!documentRow) {
+    return { error: "Document does not belong to the active workspace." }
+  }
+
+  const { error: deleteError } = await supabase
+    .from("document_shares")
+    .delete()
+    .eq("document_id", documentId)
+    .eq("shared_with_workspace_id", targetWorkspaceId)
+
+  if (deleteError) {
+    return { error: deleteError.message }
+  }
+
+  revalidatePath("/dashboard")
+  return {}
+}

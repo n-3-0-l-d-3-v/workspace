@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/src/lib/supabase/server";
 import { ChatPanel } from "./chat-panel";
 import { DocumentUploadForm } from "./document-upload-form";
+import { DocumentShareControls } from "./document-share-controls";
 import { SignOutButton } from "./sign-out-button";
 import { WorkspacePanel } from "./workspace-panel";
 
@@ -17,6 +18,15 @@ type ChatMessage = {
   content: string;
   citations: Citation[] | null;
   retrieved_chunk_ids: string[] | null;
+};
+
+type DocumentShareRow = {
+  document_id: string;
+  shared_with_workspace_id: string;
+  shared_with_workspace: {
+    id: string;
+    name: string;
+  } | null;
 };
 
 export default async function DashboardPage() {
@@ -81,6 +91,15 @@ export default async function DashboardPage() {
         .eq("workspace_id", activeWorkspaceId)
     : { data: [], error: null };
 
+  const documentIds = (documents ?? []).map((document) => document.id);
+
+  const { data: documentShares, error: documentSharesError } = documentIds.length > 0
+    ? await supabase
+        .from("document_shares")
+        .select("document_id, shared_with_workspace_id, shared_with_workspace:workspaces(id, name)")
+        .in("document_id", documentIds)
+    : { data: [], error: null };
+
   const { data: chatMessages, error: chatError } = activeWorkspaceId
     ? await supabase
         .from("chat_messages")
@@ -102,7 +121,8 @@ export default async function DashboardPage() {
     workspaceError ||
     documentsError ||
     chatError ||
-    toolCallsError
+    toolCallsError ||
+    documentSharesError
   ) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 py-12 text-zinc-100">
@@ -152,12 +172,19 @@ export default async function DashboardPage() {
           {documents && documents.length > 0 ? (
             <div className="space-y-2">
               {documents.map((document) => (
-                <div
-                  key={document.id}
-                  className="rounded-md border border-zinc-800 p-3"
-                >
+                <div key={document.id} className="rounded-md border border-zinc-800 p-3">
                   <p className="font-medium">{document.filename}</p>
                   <p className="text-sm text-zinc-500">{document.id}</p>
+                  <DocumentShareControls
+                    documentId={document.id}
+                    workspaces={orderedWorkspaces.filter((workspace) => workspace.id !== activeWorkspaceId)}
+                    sharedWith={((documentShares ?? []) as DocumentShareRow[])
+                      .filter((share) => share.document_id === document.id)
+                      .map((share) => ({
+                        id: share.shared_with_workspace?.id ?? share.shared_with_workspace_id,
+                        name: share.shared_with_workspace?.name ?? "unknown",
+                      }))}
+                  />
                 </div>
               ))}
             </div>
