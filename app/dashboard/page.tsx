@@ -179,7 +179,9 @@ export default async function DashboardPage() {
                 >
                   <p className="font-medium">{toolCall.tool_name}</p>
                   <p className="text-sm text-zinc-400">{toolCall.status}</p>
-                  <p className="text-sm text-zinc-400">Latency: {toolCall.latency_ms} ms</p>
+                  <p className="text-sm text-zinc-400">
+                    Latency: {toolCall.latency_ms} ms
+                  </p>
                   <p className="text-sm text-zinc-500">{toolCall.created_at}</p>
                 </div>
               ))}

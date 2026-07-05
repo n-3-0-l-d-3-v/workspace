@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getRetrievalDetails, sendChatMessage } from "./actions";
+import { getRetrievalDetails } from "./actions";
 
 type Citation = {
   filename: string;
@@ -40,14 +40,12 @@ type RetrievalState = {
 
 export function ChatPanel({ messages }: Props) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>(messages);
   const [inputValue, setInputValue] = useState("");
   const [inFlight, setInFlight] = useState(false);
   const [expandedMessageIds, setExpandedMessageIds] = useState<string[]>([]);
-  const [retrievalDetailsByMessageId, setRetrievalDetailsByMessageId] = useState<
-    Record<string, RetrievalState>
-  >({});
+  const [retrievalDetailsByMessageId, setRetrievalDetailsByMessageId] =
+    useState<Record<string, RetrievalState>>({});
   const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -90,6 +88,7 @@ export function ChatPanel({ messages }: Props) {
         role: "user",
         content: text,
         citations: null,
+        retrieved_chunk_ids: null,
         optimistic: true,
       },
       {
@@ -97,28 +96,130 @@ export function ChatPanel({ messages }: Props) {
         role: "assistant",
         content: "thinking...",
         citations: null,
+        retrieved_chunk_ids: null,
         optimistic: true,
       },
     ]);
 
-    startTransition(async () => {
-      const formData = new FormData();
-      formData.set("message", text);
-      await sendChatMessage(formData);
-      await router.refresh();
-      setInFlight(false);
-    });
+    void (async () => {
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: text }),
+        });
+
+        const contentType = response.headers.get("content-type") ?? "";
+
+        if (!response.ok) {
+          const errorPayload = contentType.includes("application/json")
+            ? await response.json()
+            : { error: await response.text() };
+          throw new Error(errorPayload.error ?? "Failed to send message.");
+        }
+
+        if (contentType.includes("application/json")) {
+          await response.json();
+        } else if (response.body) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+
+          let pendingText = "";
+          let revealedText = "";
+          let revealQueue = Promise.resolve();
+
+          const revealWords = async (words: string[]) => {
+            for (const word of words) {
+              await new Promise((resolve) => setTimeout(resolve, 18));
+              revealedText =
+                revealedText.length > 0 ? `${revealedText} ${word}` : word;
+
+              setLocalMessages((prev) =>
+                prev.map((message) =>
+                  message.id === optimisticAssistantId
+                    ? { ...message, content: revealedText }
+                    : message,
+                ),
+              );
+            }
+          };
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) {
+              break;
+            }
+
+            pendingText += decoder.decode(value, { stream: true });
+            const words = pendingText.match(/\S+\s*$/)
+              ? []
+              : (pendingText.match(/\S+/g) ?? []);
+
+            // Keep any trailing partial word in the buffer; reveal only complete words.
+            const lastSpaceIndex = pendingText.lastIndexOf(" ");
+            let wordsToReveal: string[] = [];
+
+            if (lastSpaceIndex >= 0) {
+              const completeSegment = pendingText.slice(0, lastSpaceIndex);
+              wordsToReveal = completeSegment.match(/\S+/g) ?? [];
+              pendingText = pendingText.slice(lastSpaceIndex + 1);
+            }
+
+            if (wordsToReveal.length > 0) {
+              revealQueue = revealQueue.then(() => revealWords(wordsToReveal));
+            }
+          }
+
+          const remainingText = pendingText + decoder.decode();
+          const finalWords = remainingText.match(/\S+/g) ?? [];
+          if (finalWords.length > 0) {
+            revealQueue = revealQueue.then(() => revealWords(finalWords));
+          }
+
+          await revealQueue;
+
+          const finalContent =
+            revealedText.trim().length > 0 ? revealedText : "";
+          setLocalMessages((prev) =>
+            prev.map((message) =>
+              message.id === optimisticAssistantId
+                ? { ...message, content: finalContent }
+                : message,
+            ),
+          );
+        }
+
+        router.refresh();
+      } catch {
+        setLocalMessages((prev) =>
+          prev.map((message) =>
+            message.id === optimisticAssistantId
+              ? { ...message, content: "Failed to send message." }
+              : message,
+          ),
+        );
+      } finally {
+        setInFlight(false);
+      }
+    })();
   }
 
   function toggleRetrievalDetails(message: LocalMessage) {
     if (expandedMessageIds.includes(message.id)) {
-      setExpandedMessageIds((prev) => prev.filter((messageId) => messageId !== message.id));
+      setExpandedMessageIds((prev) =>
+        prev.filter((messageId) => messageId !== message.id),
+      );
       return;
     }
 
     setExpandedMessageIds((prev) => [...prev, message.id]);
 
-    if (!message.retrieved_chunk_ids || message.retrieved_chunk_ids.length === 0) {
+    if (
+      !message.retrieved_chunk_ids ||
+      message.retrieved_chunk_ids.length === 0
+    ) {
       setRetrievalDetailsByMessageId((prev) => ({
         ...prev,
         [message.id]: {
@@ -130,7 +231,10 @@ export function ChatPanel({ messages }: Props) {
       return;
     }
 
-    if (retrievalDetailsByMessageId[message.id]?.chunks?.length || retrievalDetailsByMessageId[message.id]?.loading) {
+    if (
+      retrievalDetailsByMessageId[message.id]?.chunks?.length ||
+      retrievalDetailsByMessageId[message.id]?.loading
+    ) {
       return;
     }
 
@@ -144,7 +248,9 @@ export function ChatPanel({ messages }: Props) {
     }));
 
     void (async () => {
-      const result = await getRetrievalDetails(message.retrieved_chunk_ids ?? []);
+      const result = await getRetrievalDetails(
+        message.retrieved_chunk_ids ?? [],
+      );
 
       if (result.error) {
         setRetrievalDetailsByMessageId((prev) => ({
@@ -216,22 +322,34 @@ export function ChatPanel({ messages }: Props) {
                   {expandedMessageIds.includes(message.id) ? (
                     <div className="space-y-2 border-l border-zinc-800 pl-3">
                       {retrievalDetailsByMessageId[message.id]?.loading ? (
-                        <p className="text-xs text-zinc-400">Loading retrieval details...</p>
+                        <p className="text-xs text-zinc-400">
+                          Loading retrieval details...
+                        </p>
                       ) : retrievalDetailsByMessageId[message.id]?.error ? (
                         <p className="text-xs text-red-400">
                           {retrievalDetailsByMessageId[message.id].error}
                         </p>
-                      ) : retrievalDetailsByMessageId[message.id]?.chunks?.length ? (
-                        retrievalDetailsByMessageId[message.id].chunks.map((chunk) => (
-                          <div key={chunk.id} className="space-y-1 rounded border border-zinc-800 p-2">
-                            <p className="text-xs text-zinc-400">
-                              {chunk.filename}, chunk {chunk.chunk_index}
-                            </p>
-                            <p className="whitespace-pre-wrap text-xs text-zinc-300">{chunk.content}</p>
-                          </div>
-                        ))
+                      ) : retrievalDetailsByMessageId[message.id]?.chunks
+                          ?.length ? (
+                        retrievalDetailsByMessageId[message.id].chunks.map(
+                          (chunk) => (
+                            <div
+                              key={chunk.id}
+                              className="space-y-1 rounded border border-zinc-800 p-2"
+                            >
+                              <p className="text-xs text-zinc-400">
+                                {chunk.filename}, chunk {chunk.chunk_index}
+                              </p>
+                              <p className="whitespace-pre-wrap text-xs text-zinc-300">
+                                {chunk.content}
+                              </p>
+                            </div>
+                          ),
+                        )
                       ) : (
-                        <p className="text-xs text-zinc-400">No retrieval details available.</p>
+                        <p className="text-xs text-zinc-400">
+                          No retrieval details available.
+                        </p>
                       )}
                     </div>
                   ) : null}
@@ -250,14 +368,14 @@ export function ChatPanel({ messages }: Props) {
           className="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-900 px-3 py-2"
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
-          disabled={inFlight || isPending}
+          disabled={inFlight}
         />
         <button
           type="submit"
           className="rounded border border-zinc-700 px-3 py-2"
           disabled={!canSubmit}
         >
-          {inFlight || isPending ? "Sending..." : "Send"}
+          {inFlight ? "Sending..." : "Send"}
         </button>
       </form>
     </section>
