@@ -395,15 +395,27 @@ export async function runChatMessage(question: string, options?: { persistUserMe
 
   const { workspaceId, supabase, gemini, prompt, citations, retrievedChunkIds } = preparedContext as ChatContext
 
-  const answerResponse = await generateWithTools(gemini, [
-    { role: "user", parts: [{ text: prompt }] },
-  ])
+  const conversationContents: Array<{
+    role: string
+    parts: Array<
+      | { text: string }
+      | { functionCall: { name: string; args: Record<string, unknown> } }
+      | { functionResponse: { name: string; response: Record<string, unknown> } }
+    >
+  }> = [{ role: "user", parts: [{ text: prompt }] }]
 
-  const initialText = answerResponse.response.text()
-  const functionCall = getFunctionCallFromResponse(answerResponse.response)
-  let answerText = initialText
+  let answerText = ""
+  let currentResponse = await generateWithTools(gemini, conversationContents)
 
-  if (functionCall?.name) {
+  for (let step = 0; step < 3; step += 1) {
+    const functionCall = getFunctionCallFromResponse(currentResponse.response)
+    const plainText = currentResponse.response.text()
+
+    if (!functionCall?.name) {
+      answerText = plainText
+      break
+    }
+
     const toolName = functionCall.name
     const rawArgs = functionCall.args ?? {}
     const startedAt = Date.now()
@@ -484,29 +496,42 @@ export async function runChatMessage(question: string, options?: { persistUserMe
       latency_ms: latencyMs,
     })
 
-    const finalResponse = await generateWithTools(gemini, [
-      { role: "user", parts: [{ text: prompt }] },
-      {
-        role: "model",
-        parts: [{ functionCall: { name: toolName, args: rawArgs } }],
-      },
-      {
-        role: "user",
-        parts: [
-          {
-            functionResponse: {
-              name: toolName,
-              response: {
-                status,
-                result,
-              },
+    conversationContents.push({
+      role: "model",
+      parts: [{ functionCall: { name: toolName, args: rawArgs } }],
+    })
+    conversationContents.push({
+      role: "user",
+      parts: [
+        {
+          functionResponse: {
+            name: toolName,
+            response: {
+              status,
+              result,
             },
           },
-        ],
-      },
-    ])
+        },
+      ],
+    })
 
-    answerText = finalResponse.response.text()
+    if (step === 2) {
+      answerText = plainText || "I've completed several actions but reached my step limit for this turn."
+      break
+    }
+
+    currentResponse = await generateWithTools(gemini, conversationContents)
+    const followUpFunctionCall = getFunctionCallFromResponse(currentResponse.response)
+    const followUpText = currentResponse.response.text()
+
+    if (!followUpFunctionCall?.name) {
+      answerText = followUpText
+      break
+    }
+  }
+
+  if (!answerText) {
+    answerText = "I've completed several actions but reached my step limit for this turn."
   }
 
   const assistantInsertResult = await persistAssistantChatMessage(
