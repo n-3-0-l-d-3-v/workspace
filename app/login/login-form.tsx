@@ -1,63 +1,67 @@
-'use client'
+"use client";
 
-import { useState, type FormEvent } from "react"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/src/lib/supabase/client"
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/src/lib/supabase/client";
 
 export function LoginForm() {
-  const router = useRouter()
-  const supabase = createClient()
-  const [loading, setLoading] = useState<"signin" | "signup" | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const router = useRouter();
+  const supabase = createClient();
+  const [loading, setLoading] = useState<"signin" | "signup" | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
-    const formData = new FormData(event.currentTarget)
-    const email = String(formData.get("email") ?? "").trim()
-    const password = String(formData.get("password") ?? "")
-    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
-    const intent = submitter?.value === "signup" ? "signup" : "signin"
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const submitter = (event.nativeEvent as SubmitEvent)
+      .submitter as HTMLButtonElement | null;
+    const intent = submitter?.value === "signup" ? "signup" : "signin";
 
-    setLoading(intent)
-    setMessage(null)
+    setLoading(intent);
+    setMessage(null);
 
     if (!email || !password) {
-      setLoading(null)
-      setMessage("Enter both email and password.")
-      return
+      setLoading(null);
+      setMessage("Enter both email and password.");
+      return;
     }
 
     if (intent === "signin") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
       if (error) {
-        setMessage(error.message)
-        setLoading(null)
-        return
+        setMessage(error.message);
+        setLoading(null);
+        return;
       }
 
-      router.push("/dashboard")
-      router.refresh()
-      return
+      router.push("/dashboard");
+      router.refresh();
+      return;
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({ email, password });
 
     if (error) {
-      setMessage(error.message)
-      setLoading(null)
-      return
+      setMessage(error.message);
+      setLoading(null);
+      return;
     }
 
     if (data.session) {
-      router.push("/dashboard")
-      router.refresh()
-      return
+      router.push("/dashboard");
+      router.refresh();
+      return;
     }
 
-    setLoading(null)
-    setMessage("Check your email to confirm the account, then sign in.")
+    setLoading(null);
+    setMessage("Check your email to confirm the account, then sign in.");
   }
 
   return (
@@ -113,5 +117,5 @@ export function LoginForm() {
         </button>
       </div>
     </form>
-  )
+  );
 }
