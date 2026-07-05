@@ -24,6 +24,10 @@ type DocumentRow = {
   id: string
 }
 
+type TaskRow = {
+  id: string
+}
+
 type RetrievedChunkRow = {
   id: string
   document_id: string
@@ -845,6 +849,48 @@ export async function unshareDocument(
     .delete()
     .eq("document_id", documentId)
     .eq("shared_with_workspace_id", targetWorkspaceId)
+
+  if (deleteError) {
+    return { error: deleteError.message }
+  }
+
+  revalidatePath("/dashboard")
+  return {}
+}
+
+export async function deleteDocument(documentId: string): Promise<ActionResult> {
+  if (!documentId) {
+    return { error: "Document id is required." }
+  }
+
+  const workspaceResolution = await resolveActiveWorkspaceId()
+
+  if ("error" in workspaceResolution) {
+    return { error: workspaceResolution.error }
+  }
+
+  const { workspaceId, supabase } = workspaceResolution
+
+  const { data: documentRow, error: documentError } = await supabase
+    .from("documents")
+    .select("id")
+    .eq("id", documentId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+
+  if (documentError) {
+    return { error: documentError.message }
+  }
+
+  if (!documentRow) {
+    return { error: "Document does not belong to the active workspace." }
+  }
+
+  const { error: deleteError } = await supabase
+    .from("documents")
+    .delete()
+    .eq("id", documentId)
+    .eq("workspace_id", workspaceId)
 
   if (deleteError) {
     return { error: deleteError.message }

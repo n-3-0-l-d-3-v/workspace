@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { shareDocument, unshareDocument } from "./actions";
+import { deleteDocument, shareDocument, unshareDocument } from "./actions"
 
 type WorkspaceOption = {
   id: string;
@@ -86,6 +86,20 @@ export function DocumentShareControls({
           ))}
         </select>
       </label>
+
+      <button
+        type="button"
+        className="rounded border border-zinc-700 px-2 py-1 text-xs"
+        disabled={isPending}
+        onClick={() => {
+          startTransition(async () => {
+            await deleteDocument(documentId)
+            router.refresh()
+          })
+        }}
+      >
+        Delete
+      </button>
     </div>
   );
 }

@@ -29,6 +29,14 @@ type DocumentShareRow = {
   } | null;
 };
 
+type Task = {
+  id: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  created_at: string;
+};
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -103,6 +111,14 @@ export default async function DashboardPage() {
           .in("document_id", documentIds)
       : { data: [], error: null };
 
+  const { data: tasks, error: tasksError } = activeWorkspaceId
+    ? await supabase
+        .from("tasks")
+        .select("id, title, description, due_date, created_at")
+        .eq("workspace_id", activeWorkspaceId)
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
+
   const { data: chatMessages, error: chatError } = activeWorkspaceId
     ? await supabase
         .from("chat_messages")
@@ -125,7 +141,8 @@ export default async function DashboardPage() {
     documentsError ||
     chatError ||
     toolCallsError ||
-    documentSharesError
+    documentSharesError ||
+    tasksError
   ) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 py-12 text-zinc-100">
@@ -200,6 +217,24 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <p className="text-sm text-zinc-400">No documents uploaded yet.</p>
+          )}
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-zinc-800 p-4">
+          <h2 className="text-lg font-medium">Tasks</h2>
+          {tasks && tasks.length > 0 ? (
+            <div className="space-y-2">
+              {tasks.map((task: Task) => (
+                <div key={task.id} className="rounded-md border border-zinc-800 p-3">
+                  <p className="font-medium">{task.title}</p>
+                  <p className="text-sm text-zinc-400">{task.description ?? "No description"}</p>
+                  <p className="text-sm text-zinc-400">Due: {task.due_date ?? "none"}</p>
+                  <p className="text-sm text-zinc-500">Created: {task.created_at}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400">No tasks yet.</p>
           )}
         </div>
 
