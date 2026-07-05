@@ -283,30 +283,33 @@ export function ChatPanel({ messages }: Props) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
-        <h2 className="font-semibold">Chat</h2>
+      <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-5">
+        <h2 className="text-lg font-semibold font-serif">Chat</h2>
       </div>
 
-      <div
-        ref={listRef}
-        className="flex-1 space-y-4 overflow-y-auto p-4"
-      >
+      <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto p-6">
         {localMessages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-zinc-400">No messages yet. Start a conversation!</p>
+            <p className="text-sm text-zinc-400">
+              No messages yet. Start a conversation!
+            </p>
           </div>
         ) : (
           localMessages.map((message) => (
             <div
               key={message.id}
-              className={`space-y-2 rounded-xl p-4 ${
-                message.role === "user" 
-                  ? "bg-zinc-800/50 border border-zinc-700/50" 
-                  : "bg-zinc-900/70 border border-zinc-800"
+              className={`space-y-2 rounded-2xl p-5 transition-all duration-200 ${
+                message.role === "user"
+                  ? "bg-zinc-800/50 border border-zinc-700/50 hover:border-zinc-600"
+                  : "bg-zinc-900/70 border border-zinc-800 hover:border-zinc-700"
               }`}
             >
-              <p className="text-xs font-semibold text-zinc-300">{getRoleLabel(message.role)}</p>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+              <p className="text-xs font-semibold text-zinc-300">
+                {getRoleLabel(message.role)}
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                {message.content}
+              </p>
               {message.role === "assistant" &&
               message.citations &&
               message.citations.length > 0 ? (
@@ -326,7 +329,7 @@ export function ChatPanel({ messages }: Props) {
                 <div className="space-y-2 pt-2">
                   <button
                     type="button"
-                    className="text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+                    className="text-xs text-zinc-400 transition-all duration-200 hover:text-zinc-200 cursor-pointer"
                     onClick={() => toggleRetrievalDetails(message)}
                   >
                     {expandedMessageIds.includes(message.id)
@@ -334,7 +337,7 @@ export function ChatPanel({ messages }: Props) {
                       : "Show retrieval details"}
                   </button>
                   {expandedMessageIds.includes(message.id) ? (
-                    <div className="space-y-2 border-l border-zinc-700 pl-3">
+                    <div className="space-y-2 border-l border-zinc-700 pl-4">
                       {retrievalDetailsByMessageId[message.id]?.loading ? (
                         <p className="text-xs text-zinc-400">
                           Loading retrieval details...
@@ -349,7 +352,7 @@ export function ChatPanel({ messages }: Props) {
                           (chunk) => (
                             <div
                               key={chunk.id}
-                              className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3"
+                              className="space-y-1 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4 transition-all duration-200 hover:border-zinc-700"
                             >
                               <p className="text-xs text-zinc-400">
                                 {chunk.filename}, chunk {chunk.chunk_index}
@@ -374,20 +377,20 @@ export function ChatPanel({ messages }: Props) {
         )}
       </div>
 
-      <div className="border-t border-zinc-800 p-4">
+      <div className="border-t border-zinc-800 p-6">
         <form onSubmit={handleSubmit} className="flex gap-3">
           <input
             name="message"
             type="text"
             placeholder="Ask Abstra a question..."
-            className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm outline-none transition-colors placeholder:text-zinc-500 focus:border-zinc-600"
+            className="min-w-0 flex-1 rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-sm outline-none transition-all duration-200 placeholder:text-zinc-500 focus:border-zinc-600"
             value={inputValue}
             onChange={(event) => setInputValue(event.target.value)}
             disabled={inFlight}
           />
           <button
             type="submit"
-            className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-2xl bg-white px-7 py-4 text-sm font-semibold text-zinc-950 transition-all duration-200 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
             disabled={!canSubmit}
           >
             {inFlight ? "Sending..." : "Send"}

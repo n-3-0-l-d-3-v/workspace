@@ -73,17 +73,17 @@ export function WorkspacePanel({ workspaces, activeWorkspaceId }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="space-y-3">
         <label
-          className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider"
+          className="block text-xs font-medium text-zinc-500 uppercase tracking-[0.2em] font-serif"
           htmlFor="workspace-switcher"
         >
           Active workspace
         </label>
         <select
           id="workspace-switcher"
-          className="w-full appearance-none rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm outline-none transition-colors focus:border-zinc-600 disabled:opacity-50"
+          className="w-full appearance-none rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-sm outline-none transition-all duration-200 focus:border-zinc-600 disabled:opacity-50 cursor-pointer"
           value={selectedWorkspaceId}
           onChange={handleWorkspaceChange}
           disabled={isPending || workspaces.length === 0}
@@ -106,20 +106,20 @@ export function WorkspacePanel({ workspaces, activeWorkspaceId }: Props) {
       </div>
 
       <form className="space-y-3" onSubmit={handleCreateWorkspace}>
-        <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider" htmlFor="workspace-name">
+        <label className="block text-xs font-medium text-zinc-500 uppercase tracking-[0.2em] font-serif" htmlFor="workspace-name">
           Create new workspace
         </label>
         <div className="flex gap-3">
           <input
             id="workspace-name"
-            className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm outline-none transition-colors placeholder:text-zinc-500 focus:border-zinc-600"
+            className="min-w-0 flex-1 rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-sm outline-none transition-all duration-200 placeholder:text-zinc-500 focus:border-zinc-600"
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Workspace name"
           />
           <button
             type="submit"
-            className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-2xl bg-white px-6 py-4 text-sm font-semibold text-zinc-950 transition-all duration-200 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
             disabled={isPending}
           >
             Create

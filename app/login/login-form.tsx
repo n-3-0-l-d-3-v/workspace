@@ -65,13 +65,13 @@ export function LoginForm() {
   }
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="space-y-2">
+    <form className="space-y-5" onSubmit={handleSubmit}>
+      <div className="space-y-3">
         <label className="text-sm font-medium text-zinc-300" htmlFor="email">
           Email
         </label>
         <input
-          className="w-full rounded-2xl border border-white/10 bg-zinc-900 px-4 py-3 text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-white/20"
+          className="w-full rounded-3xl border border-white/10 bg-zinc-900 px-5 py-4 text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-white/20"
           id="email"
           name="email"
           type="email"
@@ -81,12 +81,12 @@ export function LoginForm() {
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <label className="text-sm font-medium text-zinc-300" htmlFor="password">
           Password
         </label>
         <input
-          className="w-full rounded-2xl border border-white/10 bg-zinc-900 px-4 py-3 text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-white/20"
+          className="w-full rounded-3xl border border-white/10 bg-zinc-900 px-5 py-4 text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-white/20"
           id="password"
           name="password"
           type="password"
@@ -100,7 +100,7 @@ export function LoginForm() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <button
-          className="rounded-2xl bg-white px-4 py-3 font-medium text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-3xl bg-white px-5 py-4 font-semibold text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
           value="signin"
           type="submit"
           disabled={loading !== null}
@@ -108,7 +108,7 @@ export function LoginForm() {
           {loading === "signin" ? "Signing in..." : "Sign in"}
         </button>
         <button
-          className="rounded-2xl border border-white/10 bg-zinc-900 px-4 py-3 font-medium text-white transition hover:border-white/20 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-3xl border border-white/10 bg-zinc-900 px-5 py-4 font-semibold text-white transition hover:border-white/20 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
           value="signup"
           type="submit"
           disabled={loading !== null}

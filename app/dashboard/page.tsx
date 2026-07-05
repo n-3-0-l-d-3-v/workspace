@@ -154,20 +154,18 @@ export default async function DashboardPage() {
   }
 
   // Get username from email
-  const username = user.email?.split('@')[0] || 'User';
+  const username = user.email?.split("@")[0] || "User";
 
   return (
     <main className="flex h-screen flex-col bg-zinc-950 text-zinc-100 overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+      <header className="flex items-center justify-between border-b border-zinc-800 px-8 py-5">
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent font-serif">
             Abstra
           </h1>
           <span className="text-sm text-zinc-500">|</span>
-          <span className="text-sm text-zinc-400">
-            Welcome, {username}
-          </span>
+          <span className="text-sm text-zinc-400">Welcome, {username}</span>
         </div>
         <SignOutButton />
       </header>
@@ -177,7 +175,7 @@ export default async function DashboardPage() {
         {/* Left Sidebar */}
         <aside className="w-full md:w-80 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-col">
           {/* Workspace Section */}
-          <div className="p-5 border-b border-zinc-800">
+          <div className="p-6 border-b border-zinc-800">
             <WorkspacePanel
               workspaces={orderedWorkspaces}
               activeWorkspaceId={activeWorkspaceId}
@@ -185,21 +183,21 @@ export default async function DashboardPage() {
           </div>
 
           {/* Documents Section */}
-          <div className="flex-1 overflow-y-auto p-5">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-[0.2em] font-serif">
                   Documents
                 </h2>
                 <DocumentUploadForm />
               </div>
-              
-              <div className="space-y-3">
+
+              <div className="space-y-4">
                 {documents && documents.length > 0 ? (
                   documents.map((document) => (
                     <div
                       key={document.id}
-                      className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                      className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 transition-all duration-200 hover:border-zinc-700"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -216,19 +214,24 @@ export default async function DashboardPage() {
                         workspaces={orderedWorkspaces.filter(
                           (workspace) => workspace.id !== activeWorkspaceId,
                         )}
-                        sharedWith={((documentShares ?? []) as DocumentShareRow[])
+                        sharedWith={(
+                          (documentShares ?? []) as DocumentShareRow[]
+                        )
                           .filter((share) => share.document_id === document.id)
                           .map((share) => ({
                             id:
                               share.shared_with_workspace?.id ??
                               share.shared_with_workspace_id,
-                            name: share.shared_with_workspace?.name ?? "unknown",
+                            name:
+                              share.shared_with_workspace?.name ?? "unknown",
                           }))}
                       />
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-zinc-500">No documents uploaded yet.</p>
+                  <p className="text-sm text-zinc-500">
+                    No documents uploaded yet.
+                  </p>
                 )}
               </div>
             </div>
@@ -244,27 +247,25 @@ export default async function DashboardPage() {
 
           {/* Tasks & Tool Calls */}
           <aside className="w-full md:w-80 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            <div className="flex-1 overflow-y-auto p-6 space-y-7">
               {/* Tasks */}
               <div className="space-y-3">
-                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-[0.2em] font-serif">
                   Tasks
                 </h2>
                 {tasks && tasks.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {tasks.map((task: Task) => (
                       <div
                         key={task.id}
-                        className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                        className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 transition-all duration-200 hover:border-zinc-700"
                       >
                         <p className="text-sm font-medium">{task.title}</p>
                         <p className="text-xs text-zinc-400 mt-1">
                           {task.description ?? "No description"}
                         </p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
-                          {task.due_date && (
-                            <span>Due: {task.due_date}</span>
-                          )}
+                          {task.due_date && <span>Due: {task.due_date}</span>}
                         </div>
                       </div>
                     ))}
@@ -276,17 +277,19 @@ export default async function DashboardPage() {
 
               {/* Tool Calls */}
               <div className="space-y-3">
-                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-[0.2em] font-serif">
                   Tool calls
                 </h2>
                 {toolCalls && toolCalls.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {toolCalls.map((toolCall) => (
                       <div
                         key={toolCall.id}
-                        className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                        className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 transition-all duration-200 hover:border-zinc-700"
                       >
-                        <p className="text-sm font-medium">{toolCall.tool_name}</p>
+                        <p className="text-sm font-medium">
+                          {toolCall.tool_name}
+                        </p>
                         <div className="flex flex-wrap gap-2 mt-1 text-xs text-zinc-400">
                           <span>{toolCall.status}</span>
                           <span>•</span>
@@ -302,7 +305,7 @@ export default async function DashboardPage() {
 
               {/* Workspace List */}
               <div className="space-y-3">
-                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-[0.2em] font-serif">
                   Your workspaces
                 </h2>
                 {orderedWorkspaces.length === 0 ? (
@@ -310,14 +313,14 @@ export default async function DashboardPage() {
                     You do not belong to any workspaces yet.
                   </p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {orderedWorkspaces.map((workspace) => (
                       <div
                         key={workspace.id}
-                        className={`rounded-xl border p-4 ${
+                        className={`rounded-2xl border p-5 transition-all duration-200 cursor-pointer ${
                           workspace.id === activeWorkspaceId
-                            ? 'border-zinc-600 bg-zinc-900'
-                            : 'border-zinc-800 bg-zinc-900/50'
+                            ? "border-zinc-600 bg-zinc-900"
+                            : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700"
                         }`}
                       >
                         <p className="text-sm font-medium">{workspace.name}</p>
