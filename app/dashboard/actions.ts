@@ -243,10 +243,11 @@ export async function prepareChatContext(
   const embeddingResult = await embeddingModel.embedContent(question)
   const questionEmbedding = embeddingResult.embedding.values
 
-  const { data: matchedChunks, error: matchError } = await supabase.rpc("match_chunks", {
-    query_embedding: questionEmbedding,
-    match_workspace_id: workspaceId,
-    match_count: 5,
+    const { data: matchedChunks, error: matchError } = await supabase.rpc("match_chunks_hybrid", {
+      query_embedding: questionEmbedding,
+      query_text: question,
+      match_workspace_id: workspaceId,
+      match_count: 5,
   })
 
   if (matchError) {
