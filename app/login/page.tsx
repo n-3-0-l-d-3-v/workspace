@@ -13,15 +13,14 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 py-12 text-zinc-100">
-      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/20 backdrop-blur">
-        <div className="mb-8 space-y-2 text-center">
-          <p className="text-sm uppercase tracking-[0.25em] text-zinc-400">
-            Abstrabit
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight">Sign in</h1>
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 px-4 py-12 text-zinc-100">
+      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-zinc-900/70 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl">
+        <div className="mb-8 space-y-3 text-center">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+            Abstra
+          </h1>
           <p className="text-sm text-zinc-400">
-            Use your email and password to access the dashboard.
+            Your intelligent workspace
           </p>
         </div>
         <LoginForm />

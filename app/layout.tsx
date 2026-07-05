@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Abstrabit",
-  description: "Supabase auth starter",
+  title: "Abstra",
+  description: "Abstra - AI workspace",
 };
 
 export default function RootLayout({

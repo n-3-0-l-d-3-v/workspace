@@ -44,17 +44,18 @@ export function DocumentShareControls({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3 pt-3">
       {sharedWith.length > 0 ? (
-        <div className="text-xs text-zinc-400">
-          Shared with:{" "}
-          {sharedWith.map((workspace) => workspace.name).join(", ")}
-          <div className="mt-1 flex flex-wrap gap-2">
+        <div className="space-y-2">
+          <p className="text-xs text-zinc-500">
+            Shared with:
+          </p>
+          <div className="flex flex-wrap gap-2">
             {sharedWith.map((workspace) => (
               <button
                 key={workspace.id}
                 type="button"
-                className="rounded border border-zinc-700 px-2 py-1 text-xs"
+                className="rounded-lg border border-zinc-700 bg-zinc-900/50 px-3 py-1.5 text-xs text-zinc-300 transition-colors hover:border-red-600/50 hover:text-red-400 disabled:opacity-50"
                 disabled={isPending}
                 onClick={() => {
                   startTransition(async () => {
@@ -63,19 +64,21 @@ export function DocumentShareControls({
                   });
                 }}
               >
-                Unshare {workspace.name}
+                {workspace.name} ×
               </button>
             ))}
           </div>
         </div>
       ) : null}
 
-      <label className="block text-xs text-zinc-400">
-        Share with...
+      <div className="space-y-2">
+        <label className="block text-xs text-zinc-500">
+          Share with workspace
+        </label>
         <select
           defaultValue=""
           disabled={isPending || workspaces.length === 0}
-          className="mt-1 rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs"
+          className="w-full appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs outline-none transition-colors focus:border-zinc-600 disabled:opacity-50"
           onChange={handleShareChange}
         >
           <option value="">Select workspace</option>
@@ -85,11 +88,11 @@ export function DocumentShareControls({
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
       <button
         type="button"
-        className="rounded border border-zinc-700 px-2 py-1 text-xs"
+        className="rounded-lg bg-red-600/10 px-4 py-2 text-xs font-semibold text-red-400 transition-colors hover:bg-red-600/20 disabled:opacity-50"
         disabled={isPending}
         onClick={() => {
           startTransition(async () => {
@@ -98,7 +101,7 @@ export function DocumentShareControls({
           });
         }}
       >
-        Delete
+        Delete document
       </button>
     </div>
   );

@@ -153,153 +153,186 @@ export default async function DashboardPage() {
     );
   }
 
+  // Get username from email
+  const username = user.email?.split('@')[0] || 'User';
+
   return (
-    <main className="min-h-screen bg-zinc-950 px-4 py-12 text-zinc-100">
-      <section className="mx-auto w-full max-w-2xl space-y-8 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/20 backdrop-blur">
-        <div>
-          <p className="text-sm uppercase tracking-[0.25em] text-zinc-400">
-            Dashboard
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-            Welcome, {user.email}
+    <main className="flex h-screen flex-col bg-zinc-950 text-zinc-100 overflow-hidden">
+      {/* Header */}
+      <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+            Abstra
           </h1>
-          <p className="mt-3 text-sm leading-6 text-zinc-400">
-            You are signed in and protected by the Supabase session.
-          </p>
+          <span className="text-sm text-zinc-500">|</span>
+          <span className="text-sm text-zinc-400">
+            Welcome, {username}
+          </span>
         </div>
+        <SignOutButton />
+      </header>
 
-        <div className="space-y-2 rounded-lg border border-zinc-800 p-4">
-          <p className="text-sm font-medium">Active workspace</p>
-          <p className="text-sm text-zinc-400">
-            {activeWorkspace
-              ? `${activeWorkspace.name} (${activeWorkspace.id})`
-              : "No workspace selected."}
-          </p>
-        </div>
-
-        <WorkspacePanel
-          workspaces={orderedWorkspaces}
-          activeWorkspaceId={activeWorkspaceId}
-        />
-
-        <div className="space-y-2 rounded-lg border border-zinc-800 p-4">
-          <h2 className="text-lg font-medium">Upload document</h2>
-          <DocumentUploadForm />
-        </div>
-
-        <div className="space-y-2 rounded-lg border border-zinc-800 p-4">
-          <h2 className="text-lg font-medium">Documents</h2>
-          {documents && documents.length > 0 ? (
-            <div className="space-y-2">
-              {documents.map((document) => (
-                <div
-                  key={document.id}
-                  className="rounded-md border border-zinc-800 p-3"
-                >
-                  <p className="font-medium">{document.filename}</p>
-                  <p className="text-sm text-zinc-500">{document.id}</p>
-                  <DocumentShareControls
-                    documentId={document.id}
-                    workspaces={orderedWorkspaces.filter(
-                      (workspace) => workspace.id !== activeWorkspaceId,
-                    )}
-                    sharedWith={((documentShares ?? []) as DocumentShareRow[])
-                      .filter((share) => share.document_id === document.id)
-                      .map((share) => ({
-                        id:
-                          share.shared_with_workspace?.id ??
-                          share.shared_with_workspace_id,
-                        name: share.shared_with_workspace?.name ?? "unknown",
-                      }))}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-400">No documents uploaded yet.</p>
-          )}
-        </div>
-
-        <div className="space-y-2 rounded-lg border border-zinc-800 p-4">
-          <h2 className="text-lg font-medium">Tasks</h2>
-          {tasks && tasks.length > 0 ? (
-            <div className="space-y-2">
-              {tasks.map((task: Task) => (
-                <div
-                  key={task.id}
-                  className="rounded-md border border-zinc-800 p-3"
-                >
-                  <p className="font-medium">{task.title}</p>
-                  <p className="text-sm text-zinc-400">
-                    {task.description ?? "No description"}
-                  </p>
-                  <p className="text-sm text-zinc-400">
-                    Due: {task.due_date ?? "none"}
-                  </p>
-                  <p className="text-sm text-zinc-500">
-                    Created: {task.created_at}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-400">No tasks yet.</p>
-          )}
-        </div>
-
-        <ChatPanel messages={(chatMessages ?? []) as ChatMessage[]} />
-
-        <div className="space-y-2 rounded-lg border border-zinc-800 p-4">
-          <h2 className="text-lg font-medium">Tool calls</h2>
-          {toolCalls && toolCalls.length > 0 ? (
-            <div className="space-y-2">
-              {toolCalls.map((toolCall) => (
-                <div
-                  key={toolCall.id}
-                  className="rounded-md border border-zinc-800 p-3"
-                >
-                  <p className="font-medium">{toolCall.tool_name}</p>
-                  <p className="text-sm text-zinc-400">{toolCall.status}</p>
-                  <p className="text-sm text-zinc-400">
-                    Latency: {toolCall.latency_ms} ms
-                  </p>
-                  <p className="text-sm text-zinc-500">{toolCall.created_at}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-400">No tool calls yet.</p>
-          )}
-        </div>
-
-        <div className="pt-2">
-          <h2 className="mb-3 text-lg font-medium">Your workspaces</h2>
-          <div className="space-y-2">
-            {orderedWorkspaces.length === 0 ? (
-              <p className="text-sm text-zinc-400">
-                You do not belong to any workspaces yet.
-              </p>
-            ) : (
-              orderedWorkspaces.map((workspace) => (
-                <div
-                  key={workspace.id}
-                  className="rounded-lg border border-zinc-800 p-4"
-                >
-                  <p className="font-medium">{workspace.name}</p>
-                  <p className="text-sm text-zinc-400">
-                    Role: {workspace.role}
-                  </p>
-                  <p className="text-sm text-zinc-500">{workspace.id}</p>
-                </div>
-              ))
-            )}
+      {/* Main Layout */}
+      <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
+        {/* Left Sidebar */}
+        <aside className="w-full md:w-80 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-col">
+          {/* Workspace Section */}
+          <div className="p-5 border-b border-zinc-800">
+            <WorkspacePanel
+              workspaces={orderedWorkspaces}
+              activeWorkspaceId={activeWorkspaceId}
+            />
           </div>
-        </div>
 
-        <div>
-          <SignOutButton />
+          {/* Documents Section */}
+          <div className="flex-1 overflow-y-auto p-5">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Documents
+                </h2>
+                <DocumentUploadForm />
+              </div>
+              
+              <div className="space-y-3">
+                {documents && documents.length > 0 ? (
+                  documents.map((document) => (
+                    <div
+                      key={document.id}
+                      className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {document.filename}
+                          </p>
+                          <p className="text-xs text-zinc-500 truncate">
+                            {document.id}
+                          </p>
+                        </div>
+                      </div>
+                      <DocumentShareControls
+                        documentId={document.id}
+                        workspaces={orderedWorkspaces.filter(
+                          (workspace) => workspace.id !== activeWorkspaceId,
+                        )}
+                        sharedWith={((documentShares ?? []) as DocumentShareRow[])
+                          .filter((share) => share.document_id === document.id)
+                          .map((share) => ({
+                            id:
+                              share.shared_with_workspace?.id ??
+                              share.shared_with_workspace_id,
+                            name: share.shared_with_workspace?.name ?? "unknown",
+                          }))}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-zinc-500">No documents uploaded yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Right Side - Chat and Info */}
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          {/* Chat Panel */}
+          <div className="flex-1 border-b md:border-b-0 md:border-r border-zinc-800 flex flex-col">
+            <ChatPanel messages={(chatMessages ?? []) as ChatMessage[]} />
+          </div>
+
+          {/* Tasks & Tool Calls */}
+          <aside className="w-full md:w-80 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              {/* Tasks */}
+              <div className="space-y-3">
+                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Tasks
+                </h2>
+                {tasks && tasks.length > 0 ? (
+                  <div className="space-y-3">
+                    {tasks.map((task: Task) => (
+                      <div
+                        key={task.id}
+                        className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                      >
+                        <p className="text-sm font-medium">{task.title}</p>
+                        <p className="text-xs text-zinc-400 mt-1">
+                          {task.description ?? "No description"}
+                        </p>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
+                          {task.due_date && (
+                            <span>Due: {task.due_date}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-zinc-500">No tasks yet.</p>
+                )}
+              </div>
+
+              {/* Tool Calls */}
+              <div className="space-y-3">
+                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Tool calls
+                </h2>
+                {toolCalls && toolCalls.length > 0 ? (
+                  <div className="space-y-3">
+                    {toolCalls.map((toolCall) => (
+                      <div
+                        key={toolCall.id}
+                        className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                      >
+                        <p className="text-sm font-medium">{toolCall.tool_name}</p>
+                        <div className="flex flex-wrap gap-2 mt-1 text-xs text-zinc-400">
+                          <span>{toolCall.status}</span>
+                          <span>•</span>
+                          <span>{toolCall.latency_ms} ms</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-zinc-500">No tool calls yet.</p>
+                )}
+              </div>
+
+              {/* Workspace List */}
+              <div className="space-y-3">
+                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Your workspaces
+                </h2>
+                {orderedWorkspaces.length === 0 ? (
+                  <p className="text-sm text-zinc-500">
+                    You do not belong to any workspaces yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {orderedWorkspaces.map((workspace) => (
+                      <div
+                        key={workspace.id}
+                        className={`rounded-xl border p-4 ${
+                          workspace.id === activeWorkspaceId
+                            ? 'border-zinc-600 bg-zinc-900'
+                            : 'border-zinc-800 bg-zinc-900/50'
+                        }`}
+                      >
+                        <p className="text-sm font-medium">{workspace.name}</p>
+                        <p className="text-xs text-zinc-500 mt-1">
+                          Role: {workspace.role}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
