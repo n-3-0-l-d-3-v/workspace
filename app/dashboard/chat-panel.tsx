@@ -42,7 +42,10 @@ export function ChatPanel({ messages }: Props) {
     }
   }, [localMessages]);
 
-  const canSubmit = useMemo(() => inputValue.trim().length > 0 && !inFlight, [inputValue, inFlight]);
+  const canSubmit = useMemo(
+    () => inputValue.trim().length > 0 && !inFlight,
+    [inputValue, inFlight],
+  );
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

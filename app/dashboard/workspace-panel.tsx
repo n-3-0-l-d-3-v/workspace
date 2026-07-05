@@ -20,7 +20,9 @@ export function WorkspacePanel({ workspaces, activeWorkspaceId }: Props) {
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [switchingWorkspaceId, setSwitchingWorkspaceId] = useState<string | null>(null);
+  const [switchingWorkspaceId, setSwitchingWorkspaceId] = useState<
+    string | null
+  >(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(
     activeWorkspaceId ?? "",
   );
