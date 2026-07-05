@@ -1,49 +1,54 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import { useTransition } from "react"
-import { shareDocument, unshareDocument } from "./actions"
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { shareDocument, unshareDocument } from "./actions";
 
 type WorkspaceOption = {
-  id: string
-  name: string
-}
+  id: string;
+  name: string;
+};
 
 type SharedWorkspace = {
-  id: string
-  name: string
-}
+  id: string;
+  name: string;
+};
 
 type Props = {
-  documentId: string
-  workspaces: WorkspaceOption[]
-  sharedWith: SharedWorkspace[]
-}
+  documentId: string;
+  workspaces: WorkspaceOption[];
+  sharedWith: SharedWorkspace[];
+};
 
-export function DocumentShareControls({ documentId, workspaces, sharedWith }: Props) {
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
+export function DocumentShareControls({
+  documentId,
+  workspaces,
+  sharedWith,
+}: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   function handleShareChange(event: React.ChangeEvent<HTMLSelectElement>) {
-    const selectElement = event.currentTarget
-    const targetWorkspaceId = selectElement.value
+    const selectElement = event.currentTarget;
+    const targetWorkspaceId = selectElement.value;
 
     if (!targetWorkspaceId) {
-      return
+      return;
     }
 
     startTransition(async () => {
-      await shareDocument(documentId, targetWorkspaceId)
-      router.refresh()
-      selectElement.value = ""
-    })
+      await shareDocument(documentId, targetWorkspaceId);
+      router.refresh();
+      selectElement.value = "";
+    });
   }
 
   return (
     <div className="space-y-2">
       {sharedWith.length > 0 ? (
         <div className="text-xs text-zinc-400">
-          Shared with: {sharedWith.map((workspace) => workspace.name).join(", ")}
+          Shared with:{" "}
+          {sharedWith.map((workspace) => workspace.name).join(", ")}
           <div className="mt-1 flex flex-wrap gap-2">
             {sharedWith.map((workspace) => (
               <button
@@ -53,9 +58,9 @@ export function DocumentShareControls({ documentId, workspaces, sharedWith }: Pr
                 disabled={isPending}
                 onClick={() => {
                   startTransition(async () => {
-                    await unshareDocument(documentId, workspace.id)
-                    router.refresh()
-                  })
+                    await unshareDocument(documentId, workspace.id);
+                    router.refresh();
+                  });
                 }}
               >
                 Unshare {workspace.name}
@@ -82,5 +87,5 @@ export function DocumentShareControls({ documentId, workspaces, sharedWith }: Pr
         </select>
       </label>
     </div>
-  )
+  );
 }

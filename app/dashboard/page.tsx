@@ -93,12 +93,15 @@ export default async function DashboardPage() {
 
   const documentIds = (documents ?? []).map((document) => document.id);
 
-  const { data: documentShares, error: documentSharesError } = documentIds.length > 0
-    ? await supabase
-        .from("document_shares")
-        .select("document_id, shared_with_workspace_id, shared_with_workspace:workspaces(id, name)")
-        .in("document_id", documentIds)
-    : { data: [], error: null };
+  const { data: documentShares, error: documentSharesError } =
+    documentIds.length > 0
+      ? await supabase
+          .from("document_shares")
+          .select(
+            "document_id, shared_with_workspace_id, shared_with_workspace:workspaces(id, name)",
+          )
+          .in("document_id", documentIds)
+      : { data: [], error: null };
 
   const { data: chatMessages, error: chatError } = activeWorkspaceId
     ? await supabase
@@ -172,16 +175,23 @@ export default async function DashboardPage() {
           {documents && documents.length > 0 ? (
             <div className="space-y-2">
               {documents.map((document) => (
-                <div key={document.id} className="rounded-md border border-zinc-800 p-3">
+                <div
+                  key={document.id}
+                  className="rounded-md border border-zinc-800 p-3"
+                >
                   <p className="font-medium">{document.filename}</p>
                   <p className="text-sm text-zinc-500">{document.id}</p>
                   <DocumentShareControls
                     documentId={document.id}
-                    workspaces={orderedWorkspaces.filter((workspace) => workspace.id !== activeWorkspaceId)}
+                    workspaces={orderedWorkspaces.filter(
+                      (workspace) => workspace.id !== activeWorkspaceId,
+                    )}
                     sharedWith={((documentShares ?? []) as DocumentShareRow[])
                       .filter((share) => share.document_id === document.id)
                       .map((share) => ({
-                        id: share.shared_with_workspace?.id ?? share.shared_with_workspace_id,
+                        id:
+                          share.shared_with_workspace?.id ??
+                          share.shared_with_workspace_id,
                         name: share.shared_with_workspace?.name ?? "unknown",
                       }))}
                   />
