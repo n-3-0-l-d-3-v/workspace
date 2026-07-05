@@ -20,6 +20,7 @@ export function WorkspacePanel({ workspaces, activeWorkspaceId }: Props) {
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [switchingWorkspaceId, setSwitchingWorkspaceId] = useState<string | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(
     activeWorkspaceId ?? "",
   );
@@ -33,6 +34,7 @@ export function WorkspacePanel({ workspaces, activeWorkspaceId }: Props) {
   ) {
     const workspaceId = event.target.value;
     setSelectedWorkspaceId(workspaceId);
+    setSwitchingWorkspaceId(workspaceId);
     setMessage(null);
 
     startTransition(async () => {
@@ -40,10 +42,12 @@ export function WorkspacePanel({ workspaces, activeWorkspaceId }: Props) {
 
       if (result.error) {
         setMessage(result.error);
+        setSwitchingWorkspaceId(null);
         return;
       }
 
       router.refresh();
+      setSwitchingWorkspaceId(null);
     });
   }
 
@@ -87,8 +91,14 @@ export function WorkspacePanel({ workspaces, activeWorkspaceId }: Props) {
               <option value="">No workspaces yet</option>
             ) : null}
             {workspaces.map((workspace) => (
-              <option key={workspace.id} value={workspace.id}>
-                {workspace.name}
+              <option
+                key={workspace.id}
+                value={workspace.id}
+                disabled={switchingWorkspaceId === workspace.id}
+              >
+                {switchingWorkspaceId === workspace.id
+                  ? `${workspace.name} (loading...)`
+                  : workspace.name}
               </option>
             ))}
           </select>

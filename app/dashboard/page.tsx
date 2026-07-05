@@ -1,9 +1,22 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/src/lib/supabase/server";
+import { ChatPanel } from "./chat-panel";
 import { DocumentUploadForm } from "./document-upload-form";
 import { SignOutButton } from "./sign-out-button";
 import { WorkspacePanel } from "./workspace-panel";
+
+type Citation = {
+  filename: string;
+  chunk_index: number;
+};
+
+type ChatMessage = {
+  id: string;
+  role: string;
+  content: string;
+  citations: Citation[] | null;
+};
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -67,7 +80,15 @@ export default async function DashboardPage() {
         .eq("workspace_id", activeWorkspaceId)
     : { data: [], error: null };
 
-  if (membershipError || workspaceError || documentsError) {
+  const { data: chatMessages, error: chatError } = activeWorkspaceId
+    ? await supabase
+        .from("chat_messages")
+        .select("id, role, content, citations")
+        .eq("workspace_id", activeWorkspaceId)
+        .order("created_at", { ascending: true })
+    : { data: [], error: null };
+
+  if (membershipError || workspaceError || documentsError || chatError) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 py-12 text-zinc-100">
         <section className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/5 p-8">
@@ -129,6 +150,8 @@ export default async function DashboardPage() {
             <p className="text-sm text-zinc-400">No documents uploaded yet.</p>
           )}
         </div>
+
+        <ChatPanel messages={(chatMessages ?? []) as ChatMessage[]} />
 
         <div className="pt-2">
           <h2 className="mb-3 text-lg font-medium">Your workspaces</h2>
