@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { deleteDocument, shareDocument, unshareDocument } from "./actions"
+import { deleteDocument, shareDocument, unshareDocument } from "./actions";
 
 type WorkspaceOption = {
   id: string;
@@ -93,9 +93,9 @@ export function DocumentShareControls({
         disabled={isPending}
         onClick={() => {
           startTransition(async () => {
-            await deleteDocument(documentId)
-            router.refresh()
-          })
+            await deleteDocument(documentId);
+            router.refresh();
+          });
         }}
       >
         Delete

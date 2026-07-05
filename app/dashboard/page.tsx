@@ -225,11 +225,20 @@ export default async function DashboardPage() {
           {tasks && tasks.length > 0 ? (
             <div className="space-y-2">
               {tasks.map((task: Task) => (
-                <div key={task.id} className="rounded-md border border-zinc-800 p-3">
+                <div
+                  key={task.id}
+                  className="rounded-md border border-zinc-800 p-3"
+                >
                   <p className="font-medium">{task.title}</p>
-                  <p className="text-sm text-zinc-400">{task.description ?? "No description"}</p>
-                  <p className="text-sm text-zinc-400">Due: {task.due_date ?? "none"}</p>
-                  <p className="text-sm text-zinc-500">Created: {task.created_at}</p>
+                  <p className="text-sm text-zinc-400">
+                    {task.description ?? "No description"}
+                  </p>
+                  <p className="text-sm text-zinc-400">
+                    Due: {task.due_date ?? "none"}
+                  </p>
+                  <p className="text-sm text-zinc-500">
+                    Created: {task.created_at}
+                  </p>
                 </div>
               ))}
             </div>
