@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/src/lib/supabase/server";
+import { DocumentUploadForm } from "./document-upload-form";
 import { SignOutButton } from "./sign-out-button";
 import { WorkspacePanel } from "./workspace-panel";
 
@@ -59,11 +60,18 @@ export default async function DashboardPage() {
     orderedWorkspaces.find((workspace) => workspace.id === activeWorkspaceId) ??
     null;
 
-  if (membershipError || workspaceError) {
+  const { data: documents, error: documentsError } = activeWorkspaceId
+    ? await supabase
+        .from("documents")
+        .select("id, filename")
+        .eq("workspace_id", activeWorkspaceId)
+    : { data: [], error: null };
+
+  if (membershipError || workspaceError || documentsError) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 py-12 text-zinc-100">
         <section className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/5 p-8">
-          <p className="text-sm text-red-400">Failed to load workspaces.</p>
+          <p className="text-sm text-red-400">Failed to load dashboard data.</p>
         </section>
       </main>
     );
@@ -97,6 +105,30 @@ export default async function DashboardPage() {
           workspaces={orderedWorkspaces}
           activeWorkspaceId={activeWorkspaceId}
         />
+
+        <div className="space-y-2 rounded-lg border border-zinc-800 p-4">
+          <h2 className="text-lg font-medium">Upload document</h2>
+          <DocumentUploadForm />
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-zinc-800 p-4">
+          <h2 className="text-lg font-medium">Documents</h2>
+          {documents && documents.length > 0 ? (
+            <div className="space-y-2">
+              {documents.map((document) => (
+                <div
+                  key={document.id}
+                  className="rounded-md border border-zinc-800 p-3"
+                >
+                  <p className="font-medium">{document.filename}</p>
+                  <p className="text-sm text-zinc-500">{document.id}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400">No documents uploaded yet.</p>
+          )}
+        </div>
 
         <div className="pt-2">
           <h2 className="mb-3 text-lg font-medium">Your workspaces</h2>
