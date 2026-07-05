@@ -16,6 +16,7 @@ type ChatMessage = {
   role: string;
   content: string;
   citations: Citation[] | null;
+  retrieved_chunk_ids: string[] | null;
 };
 
 export default async function DashboardPage() {
@@ -83,7 +84,7 @@ export default async function DashboardPage() {
   const { data: chatMessages, error: chatError } = activeWorkspaceId
     ? await supabase
         .from("chat_messages")
-        .select("id, role, content, citations")
+        .select("id, role, content, citations, retrieved_chunk_ids")
         .eq("workspace_id", activeWorkspaceId)
         .order("created_at", { ascending: true })
     : { data: [], error: null };
@@ -91,7 +92,7 @@ export default async function DashboardPage() {
   const { data: toolCalls, error: toolCallsError } = activeWorkspaceId
     ? await supabase
         .from("tool_calls")
-        .select("id, tool_name, status, created_at")
+        .select("id, tool_name, status, latency_ms, created_at")
         .eq("workspace_id", activeWorkspaceId)
         .order("created_at", { ascending: false })
     : { data: [], error: null };
@@ -178,6 +179,7 @@ export default async function DashboardPage() {
                 >
                   <p className="font-medium">{toolCall.tool_name}</p>
                   <p className="text-sm text-zinc-400">{toolCall.status}</p>
+                  <p className="text-sm text-zinc-400">Latency: {toolCall.latency_ms} ms</p>
                   <p className="text-sm text-zinc-500">{toolCall.created_at}</p>
                 </div>
               ))}

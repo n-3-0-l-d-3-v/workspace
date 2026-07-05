@@ -30,6 +30,13 @@ type RetrievedChunkRow = {
   chunk_index: number
 }
 
+type RetrievalDetailRow = {
+  id: string
+  content: string
+  chunk_index: number
+  document_id: string
+}
+
 type GeminiFunctionCall = {
   name?: string
   args?: Record<string, unknown>
@@ -620,6 +627,69 @@ export async function sendChatMessage(formData: FormData): Promise<ActionResult>
 
   revalidatePath("/dashboard")
   return {}
+}
+
+export async function getRetrievalDetails(chunkIds: string[]): Promise<
+  ActionResult & {
+    chunks?: Array<{
+      id: string
+      content: string
+      chunk_index: number
+      filename: string
+    }>
+  }
+> {
+  if (!Array.isArray(chunkIds) || chunkIds.length === 0) {
+    return { error: "Chunk ids are required." }
+  }
+
+  const workspaceResolution = await resolveActiveWorkspaceId()
+
+  if ("error" in workspaceResolution) {
+    return { error: workspaceResolution.error }
+  }
+
+  const { workspaceId, supabase } = workspaceResolution
+  const uniqueChunkIds = [...new Set(chunkIds.filter((chunkId) => typeof chunkId === "string" && chunkId.trim().length > 0))]
+
+  if (uniqueChunkIds.length === 0) {
+    return { error: "Chunk ids are required." }
+  }
+
+  const { data: chunkRows, error: chunksError } = await supabase
+    .from("chunks")
+    .select("id, content, chunk_index, document_id")
+    .eq("workspace_id", workspaceId)
+    .in("id", uniqueChunkIds)
+
+  if (chunksError) {
+    return { error: chunksError.message }
+  }
+
+  const typedChunkRows = (chunkRows ?? []) as RetrievalDetailRow[]
+  const documentIds = [...new Set(typedChunkRows.map((chunk) => chunk.document_id))]
+
+  const { data: documents, error: documentsError } =
+    documentIds.length > 0
+      ? await supabase.from("documents").select("id, filename").in("id", documentIds)
+      : { data: [], error: null }
+
+  if (documentsError) {
+    return { error: documentsError.message }
+  }
+
+  const filenameByDocumentId = new Map(
+    (documents ?? []).map((document) => [document.id, document.filename])
+  )
+
+  return {
+    chunks: typedChunkRows.map((chunk) => ({
+      id: chunk.id,
+      content: chunk.content,
+      chunk_index: chunk.chunk_index,
+      filename: filenameByDocumentId.get(chunk.document_id) ?? "unknown",
+    })),
+  }
 }
 
 export async function sendChatMessageForm(formData: FormData): Promise<void> {
